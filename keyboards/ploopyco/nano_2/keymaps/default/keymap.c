@@ -18,6 +18,45 @@
  */
 #include QMK_KEYBOARD_H
 
-const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
-    [0] = LAYOUT( DRAG_SCROLL )
+enum layers {
+    _QWERTY = 0,
+    _LOWER,
 };
+const uint16_t PROGMEM keymaps[][MATRIX_ROWS][MATRIX_COLS] = {
+    [_QWERTY] = LAYOUT( LT(_LOWER, MS_BTN1)),
+    [_LOWER] = LAYOUT( KC_NO ),
+
+};
+
+#define DELTA_X_THRESHOLD 60
+#define DELTA_Y_THRESHOLD 15
+
+// State
+static int8_t delta_x         = 0;
+static int8_t delta_y         = 0;
+
+report_mouse_t pointing_device_task_user(report_mouse_t mouse_report) {
+    if (biton32(layer_state)) {
+        delta_x += mouse_report.x;
+        delta_y += mouse_report.y;
+
+        if (delta_x > DELTA_X_THRESHOLD) {
+            mouse_report.h = -1;
+            delta_x        = 0;
+        } else if (delta_x < -DELTA_X_THRESHOLD) {
+            mouse_report.h = 1;
+            delta_x        = 0;
+        }
+
+        if (delta_y > DELTA_Y_THRESHOLD) {
+            mouse_report.v = 1;
+            delta_y        = 0;
+        } else if (delta_y < -DELTA_Y_THRESHOLD) {
+            mouse_report.v = -1;
+            delta_y        = 0;
+        }
+        mouse_report.x = 0;
+        mouse_report.y = 0;
+    }
+    return mouse_report;
+}
